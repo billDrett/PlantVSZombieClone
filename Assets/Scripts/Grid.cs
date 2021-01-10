@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+
+// NOTE keep in mind when using a 3d vector that our characters are moving to the x,z axis  not the y. The height of the characters does't change
 public class Grid : MonoBehaviour
 {
     [SerializeField] LayerMask unwalkableMask;
-    [SerializeField] Vector2 gridWorldSize;
+    public Vector2 gridWorldSize;
     [SerializeField] float nodeRadius;
-    [SerializeField] Node[,] grid = null;
+    public Node[,] grid = null;
 
     float nodeDiameter;
     int gridSizeX;
@@ -14,13 +16,18 @@ public class Grid : MonoBehaviour
 
     [SerializeField] Transform player;
 
-    // Use this for initialization
-    void Start()
+    private void Start()
     {
-       CreateGrid();
+        CreateGrid();
     }
 
-    void CreateGrid()
+    // Update is called once per frame
+    void Update()
+    {
+        CreateGrid();
+    }
+
+    public void CreateGrid()
     {
         if (nodeRadius == 0f)
         {
@@ -33,7 +40,7 @@ public class Grid : MonoBehaviour
         gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
         grid = new Node[gridSizeX, gridSizeY];
 
-        Vector3 worldButtonLeft = transform.position - (Vector3.right * gridWorldSize.x / 2) - (Vector3.forward * gridWorldSize.y / 2);
+        Vector3 worldButtomLeft = transform.position - (Vector3.right * gridWorldSize.x / 2) - (Vector3.forward * gridWorldSize.y / 2);
 
         //create grid
         for (int x = 0; x < gridSizeX; ++x)
@@ -41,7 +48,7 @@ public class Grid : MonoBehaviour
             for (int y = 0; y < gridSizeY; ++y)
             {
                 // add the radius to get the center of every point
-                Vector3 worldPoint = worldButtonLeft + Vector3.right * (x * nodeDiameter + nodeRadius)
+                Vector3 worldPoint = worldButtomLeft + Vector3.right * (x * nodeDiameter + nodeRadius)
                                                      + Vector3.forward * (y * nodeDiameter + nodeRadius);
                 grid[x, y] = new Node(worldPoint, false);
 
@@ -49,28 +56,26 @@ public class Grid : MonoBehaviour
         }
     }
 
-    Node NodeFromWorldPosition(Vector3 worldPosition)
+    public Node NodeFromWorldPosition(Vector3 worldPosition)
     {
+        float bottomX = gridWorldSize.x / 2;
+        float bottomY = gridWorldSize.y / 2;
 
-        //TODO find a way to make the logic here simpler. Using a for loop is not fast enough
-        //for big greeds but it's easy to understand compare to this code of 6 lines full of math
-        float percentX = (worldPosition.x + gridWorldSize.x / 2) / gridWorldSize.x;
-        float percentY = (worldPosition.z + gridWorldSize.y / 2) / gridWorldSize.y;
 
-        percentX = Mathf.Clamp01(percentX);
-        percentY = Mathf.Clamp01(percentY);
+        int x = (int)((bottomX + worldPosition.x) / nodeDiameter);
+        int y = (int)((bottomY + worldPosition.z) / nodeDiameter);
 
-        int x = Mathf.RoundToInt((gridSizeX - 1) * percentX);
-        int y = Mathf.RoundToInt((gridSizeY - 1) * percentY);
+        if(x >= gridSizeX || y >= gridSizeY)
+        {
+            string exceptionError = "Request position is out of bounds,x " + x + " ,y" + y +
+                                    "\n GridSizeX "+ gridSizeX + " GridSizeY " + gridSizeY + " buttomY "+ bottomY;
+            throw new System.IndexOutOfRangeException(exceptionError);
+        }
 
         return grid[x, y];
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        CreateGrid();
-    }
+    
 
     private void OnDrawGizmos()
     {
